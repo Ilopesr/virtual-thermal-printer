@@ -17,13 +17,19 @@ windows:
 	@echo "Gerado: bin/$(APP)-windows-amd64.exe"
 
 run:
-	go run . -port 631 -web 8080 -width 80 -name "Virtual-Thermal-Printer" -output ./jobs
+	go run . -port 6310 -web 8080 -width 80 -name "Virtual-Thermal-Printer" -output ./jobs
 
 run-58:
-	go run . -port 631 -web 8080 -width 58 -name "Virtual-Printer-58mm" -output ./jobs
+	go run . -port 6310 -web 8080 -width 58 -name "Virtual-Printer-58mm" -output ./jobs
 
 run-110:
-	go run . -port 631 -web 8080 -width 110 -name "Virtual-Printer-110mm" -output ./jobs
+	go run . -port 6310 -web 8080 -width 110 -name "Virtual-Printer-110mm" -output ./jobs
+
+run-daemon:
+	nohup go run . -port 6310 -web 8080 -width 80 -name "Virtual-Thermal-Printer" -output ./jobs &> /dev/null &
+
+stop-daemon:
+	@pkill -f "virtual-printer" || echo "Nenhum processo encontrado"
 
 clean:
 	rm -rf bin/ jobs/

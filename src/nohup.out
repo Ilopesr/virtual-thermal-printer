@@ -1,0 +1,49 @@
+
+VIRTUAL THERMAL PRINTER v1.1.0
+  Impressora : Virtual-Thermal-Printer
+  IPP        : ipp://localhost:631/printers/Virtual-Thermal-Printer
+  Interface  : http://localhost:8080
+  Papel      : 80mm
+  Jobs       : ./jobs
+
+Linux  : sudo lpadmin -p Virtual-Thermal-Printer -E -v ipp://localhost:631/printers/Virtual-Thermal-Printer -m everywhere
+Windows: http://localhost:631/printers/Virtual-Thermal-Printer
+Web    : http://localhost:8080
+
+Ctrl+C para encerrar
+2026/04/19 17:34:23 Servidor IPP escutando em :631
+2026/04/19 17:34:23 Interface web em http://localhost:8080
+2026/04/19 17:34:23 Erro Web: listen tcp :8080: bind: address already in use
+exit status 1
+
+VIRTUAL THERMAL PRINTER v1.1.0
+  Impressora : Virtual-Thermal-Printer
+  IPP        : ipp://localhost:631/printers/Virtual-Thermal-Printer
+  Interface  : http://localhost:8080
+  Papel      : 80mm
+  Jobs       : ./jobs
+
+Linux  : sudo lpadmin -p Virtual-Thermal-Printer -E -v ipp://localhost:631/printers/Virtual-Thermal-Printer -m everywhere
+Windows: http://localhost:631/printers/Virtual-Thermal-Printer
+Web    : http://localhost:8080
+
+Ctrl+C para encerrar
+2026/04/19 17:34:55 Servidor IPP escutando em :631
+2026/04/19 17:34:55 Interface web em http://localhost:8080
+2026/04/19 17:34:55 Erro IPP: listen tcp :631: bind: permission denied
+exit status 1
+
+VIRTUAL THERMAL PRINTER v1.1.0
+  Impressora : Virtual-Thermal-Printer
+  IPP        : ipp://localhost:6310/printers/Virtual-Thermal-Printer
+  Interface  : http://localhost:8080
+  Papel      : 80mm
+  Jobs       : ./jobs
+
+Linux  : sudo lpadmin -p Virtual-Thermal-Printer -E -v ipp://localhost:6310/printers/Virtual-Thermal-Printer -m everywhere
+Windows: http://localhost:6310/printers/Virtual-Thermal-Printer
+Web    : http://localhost:8080
+
+Ctrl+C para encerrar
+2026/04/19 17:35:17 Servidor IPP escutando em :6310
+2026/04/19 17:35:17 Interface web em http://localhost:8080

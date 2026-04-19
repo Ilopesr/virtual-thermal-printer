@@ -3,6 +3,7 @@ package ipp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -75,10 +76,44 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/", s.handleIPP)
 	mux.HandleFunc("/printers/", s.handleIPP)
 	mux.HandleFunc("/ipp/print", s.handleIPP)
+	mux.HandleFunc("/print", s.handlePrintText)
 
 	addr := fmt.Sprintf(":%d", s.cfg.IPPPort)
 	log.Printf("Servidor IPP escutando em %s", addr)
 	return http.ListenAndServe(addr, mux)
+}
+
+func (s *Server) handlePrintText(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "Virtual Thermal Printer - Use POST with text/plain content\n")
+		return
+	}
+
+	body, err := io.ReadAll(io.LimitReader(r.Body, 32<<20))
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	job := &config.Job{
+		Name:       "Text Print",
+		User:       r.Header.Get("X-User"),
+		Format:     "text/plain",
+		Data:       body,
+		ReceivedAt: time.Now().Format("02/01/2006 15:04:05"),
+		Size:       len(body),
+	}
+
+	log.Printf("[DEBUG] Body hex: %s", hex.EncodeToString(body[:min(200, len(body))]))
+	s.Jobs.Add(job)
+	s.renderer.Render(job)
+	s.Hub.Broadcast("new-job", job)
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprintf(w, "OK: Job #%d\n", job.ID)
+	log.Printf("[TEXT] Job #%d received (%d bytes)", job.ID, len(body))
 }
 
 func (s *Server) handleIPP(w http.ResponseWriter, r *http.Request) {

@@ -89,6 +89,17 @@ func (r *Renderer) extractBody(job *config.Job, cols int) string {
 	if isPrintable(data) {
 		return wrapText(string(data), cols)
 	}
+	if isPDF(data) {
+		var sb strings.Builder
+		sb.WriteString(centerStr("[ARQUIVO PDF]", cols) + "\n")
+		sb.WriteString(divider(cols, "-") + "\n")
+		sb.WriteString(centerStr("Formato: "+job.Format, cols) + "\n")
+		sb.WriteString(centerStr("Tamanho: "+HumanSize(len(data)), cols) + "\n")
+		sb.WriteString(divider(cols, "-") + "\n")
+		sb.WriteString(centerStr("[PDF nao suportado]", cols) + "\n")
+		sb.WriteString(centerStr("para impressao termica", cols) + "\n")
+		return sb.String()
+	}
 	var sb strings.Builder
 	sb.WriteString(centerStr("[Dados binarios - "+HumanSize(len(data))+"]", cols) + "\n")
 	sb.WriteString(divider(cols, "-") + "\n")
@@ -105,6 +116,12 @@ func (r *Renderer) BuildHTML(job *config.Job, cols int) string {
 	} else if isPrintable(data) {
 		escaped := escapeHTML(string(data))
 		body = fmt.Sprintf(`<div style="font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;padding:12px">%s</div>`, escaped)
+	} else if isPDF(data) {
+		body = fmt.Sprintf(`<div style="font-family:monospace;font-size:12px;white-space:pre-wrap;padding:12px;text-align:center;color:#c00">
+<div style="font-size:16px;font-weight:bold;margin-bottom:8px">ARQUIVO PDF</div>
+<div style="color:#666">%s</div>
+<div style="margin-top:8px;color:#c00">PDF nao suportado para impressao termica</div>
+</div>`, job.Format)
 	} else {
 		body = fmt.Sprintf(`<div style="font-family:monospace;font-size:11px;white-space:pre;padding:12px">%s</div>`, escapeHTML(hexDump(data, cols)))
 	}
@@ -163,6 +180,10 @@ func isLikelyEscPos(data []byte) bool {
 		}
 	}
 	return false
+}
+
+func isPDF(data []byte) bool {
+	return len(data) >= 4 && string(data[:4]) == "%PDF"
 }
 
 func isPrintable(data []byte) bool {

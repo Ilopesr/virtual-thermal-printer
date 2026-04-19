@@ -2,6 +2,7 @@ package escpos
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"unicode/utf8"
 )
@@ -25,6 +26,8 @@ type Line struct {
 	IsBarcode bool
 	IsCut     bool
 	FontB     bool // fonte menor
+	IsQRCode  bool
+	QRData   string
 }
 
 // Parse interpreta dados ESC/POS e retorna um Document
@@ -182,6 +185,28 @@ func Parse(data []byte, cols int) *Document {
 			cmd := data[i]
 			i++
 			switch cmd {
+			case '(': // GS ( - QR Code (model 2)
+				if i+1 < len(data) {
+					nL := int(data[i])
+					nH := int(data[i+1])
+					length := nL + nH*256
+					if length > 4 && i+3+length <= len(data) {
+						typ := data[i+2]
+						if typ == 'Q' || typ == 'q' {
+							qrData := string(data[i+3 : i+2+length])
+							flush()
+							doc.Lines = append(doc.Lines, Line{
+								IsQRCode: true,
+								QRData:  qrData,
+								Align:  state.align,
+							})
+							i += 2 + length
+						} else {
+							i += 2 + length
+						}
+					}
+				}
+
 			case 'B': // GS B n - bold (alternativo)
 				if i < len(data) {
 					state.bold = data[i] != 0
@@ -337,6 +362,11 @@ func (doc *Document) RenderText() string {
 			sb.WriteString("\n")
 			continue
 		}
+		if line.IsQRCode {
+			// QR code - mostra como texto (visualização simplificada)
+			sb.WriteString(fmt.Sprintf("[QR: %s]\n", line.QRData))
+			continue
+		}
 		if line.IsBarcode {
 			bc := renderBarcode(line.Text, w)
 			sb.WriteString(applyAlign(bc, w, 1) + "\n")
@@ -398,6 +428,12 @@ func (doc *Document) RenderHTML(paperWidth string) string {
 		}
 		if line.Feed {
 			sb.WriteString(`<div style="height:0.8em"></div>`)
+			continue
+		}
+		if line.IsQRCode {
+			// Por enquanto mostra só texto (preview virtual não suporta QR grande)
+			align := cssAlign(line.Align)
+			sb.WriteString(fmt.Sprintf(`<div style="text-align:%s;margin:8px 0;font-size:10px;color:#666">[QR: %s]</div>`, align, escapeHTML(line.QRData)))
 			continue
 		}
 		if line.IsBarcode {
@@ -512,6 +548,14 @@ func renderBarcodeHTML(data string) string {
 	sb.WriteString(fmt.Sprintf(`<div style="text-align:center;font-size:10px;letter-spacing:2px">%s</div>`, escapeHTML(data)))
 	sb.WriteString("</div>")
 	return sb.String()
+}
+
+func renderQRCodeHTML(data string) string {
+	// Usa Google Charts API para gerar QR code
+	encoded := url.QueryEscape(data)
+	url := "https://chart.googleapis.com/chart?cht=qr&chs=150x150&chl=" + encoded
+
+	return fmt.Sprintf(`<img src="%s" alt="QR: %s" style="width:100px;height:100px;border:1px solid #ddd;display:block;margin:0 auto" />`, url, escapeHTML(data))
 }
 
 func escapeHTML(s string) string {

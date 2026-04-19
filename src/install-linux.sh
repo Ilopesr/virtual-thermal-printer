@@ -1,10 +1,8 @@
 #!/bin/bash
-# install-linux.sh — Instala a impressora virtual no CUPS
-
 set -e
 
 PRINTER_NAME="${1:-Virtual-Thermal-Printer}"
-IPP_PORT="${2:-631}"
+IPP_PORT="${2:-6310}"   # 🔥 melhor default
 IPP_URL="ipp://localhost:${IPP_PORT}/printers/${PRINTER_NAME}"
 
 echo "=============================================="
@@ -15,31 +13,46 @@ echo "Impressora : $PRINTER_NAME"
 echo "URL IPP    : $IPP_URL"
 echo ""
 
-# Verifica se o servidor está rodando
+# 🔧 Garante que CUPS está rodando
+echo "Verificando CUPS..."
+if ! systemctl is-active --quiet cups; then
+  echo "Iniciando CUPS..."
+  sudo systemctl start cups
+fi
+echo "CUPS OK"
+
+# 🔎 Verifica IPP de verdade (porta aberta)
 echo "Verificando servidor IPP..."
-if ! curl -s "http://localhost:${IPP_PORT}/" > /dev/null 2>&1; then
-  echo "AVISO: Servidor IPP não responde em localhost:${IPP_PORT}"
-  echo "Inicie o servidor primeiro com: ./virtual-printer"
+if ! nc -z localhost "$IPP_PORT"; then
+  echo "ERRO: Servidor IPP não está escutando em localhost:${IPP_PORT}"
+  echo "Inicie com: ./virtual-printer -port ${IPP_PORT}"
   exit 1
 fi
 echo "Servidor IPP OK"
 
-# Remove impressora antiga se existir
-if lpstat -p "$PRINTER_NAME" 2>/dev/null; then
+# 🧹 Remove impressora antiga
+if lpstat -p "$PRINTER_NAME" >/dev/null 2>&1; then
   echo "Removendo instalação anterior..."
-  sudo lpadmin -x "$PRINTER_NAME" 2>/dev/null || true
+  sudo lpadmin -x "$PRINTER_NAME" || true
 fi
 
-# Adiciona a impressora via IPP Everywhere (driverless)
+# ➕ Adiciona impressora
 echo "Adicionando impressora ao CUPS..."
-sudo lpadmin -p "$PRINTER_NAME" \
+if ! sudo lpadmin -p "$PRINTER_NAME" \
   -E \
   -v "$IPP_URL" \
   -m everywhere \
   -D "Virtual Thermal Printer (${PRINTER_NAME})" \
-  -L "Virtual / Emulador"
+  -L "Virtual / Emulador"; then
 
-# Define como padrão (opcional)
+  echo ""
+  echo "⚠️ Falha com IPP Everywhere."
+  echo "Tentando fallback (sem driver)..."
+
+  sudo lpadmin -p "$PRINTER_NAME" -E -v "$IPP_URL"
+fi
+
+# 🎯 Define padrão
 read -p "Definir como impressora padrão? [s/N] " def
 if [[ "$def" =~ ^[sS]$ ]]; then
   sudo lpoptions -d "$PRINTER_NAME"
@@ -49,11 +62,10 @@ fi
 echo ""
 echo "Instalação concluída!"
 echo ""
-echo "Testar impressão:"
-echo "  echo 'Teste de impressão' | lp -d $PRINTER_NAME"
+echo "Testes:"
+echo "  echo 'Teste' | lp -d $PRINTER_NAME"
 echo "  lp -d $PRINTER_NAME arquivo.pdf"
-echo "  lpr -P $PRINTER_NAME arquivo.txt"
 echo ""
-echo "Ver status:"
+echo "Status:"
 echo "  lpstat -p $PRINTER_NAME"
 echo "  lpstat -o"
